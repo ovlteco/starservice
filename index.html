@@ -1,0 +1,3158 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Cierre - STAR SERVICE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f3f4f6;
+    transition: background-color 0.3s ease;
+}
+body.dark-mode {
+    background-color: #111827;
+    color: #f3f4f6;
+}
+.custom-scrollbar::-webkit-scrollbar { width: 8px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
+.badge { display: inline-block; padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+.dark-mode .custom-scrollbar::-webkit-scrollbar-track { background: #1f2937; }
+.dark-mode .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; }
+#actionButtonContainer { min-height: 50px; }
+.item-selected { background-color: #3b82f6; color: white; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+.item-default { background-color: #f3f4f6; transition: all 0.2s; }
+.item-default:hover { background-color: #dbeafe; }
+.dark-mode .item-default { background-color: #1f2937; color: #e5e7eb; }
+.dark-mode .item-default:hover { background-color: #374151; }
+.modal-backdrop { transition: opacity 0.3s ease; }
+.modal-panel { transition: transform 0.3s ease, opacity 0.3s ease; }
+.tab { transition: all 0.2s ease-in-out; }
+.tab-active { border-bottom-width: 3px; border-color: #2563eb; color: #1d4ed8; font-weight: 600; }
+.tab-inactive { border-color: transparent; color: #6b7280; }
+.tab-inactive:hover { border-color: #9ca3af; color: #111827; }
+.dark-mode .tab-inactive { color: #9ca3af; }
+.dark-mode .tab-inactive:hover { color: #e5e7eb; }
+.loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: loading 1.5s infinite; }
+@keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+.tooltip { position: relative; display: inline-block; }
+.tooltip .tooltiptext { visibility: hidden; background-color: #333; color: #fff; text-align: center; border-radius: 6px; padding: 5px 10px; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -60px; opacity: 0; transition: opacity 0.3s; font-size: 0.75rem; white-space: nowrap; }
+.tooltip:hover .tooltiptext { visibility: visible; opacity: 1; }
+#toast {
+    position: fixed;
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 24px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    transition: top 0.5s ease-in-out;
+    z-index: 100;
+}
+.toast-success { background-color: #28a745; }
+.toast-error { background-color: #dc3545; }
+#toast.show { top: 20px; }
+/* --- ESTILOS PARA MODAL DE LOGIN --- */
+.auth-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+.auth-modal {
+    background: white;
+    border-radius: 12px;
+    padding: 40px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+.auth-modal h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 10px;
+    text-align: center;
+}
+.auth-modal p {
+    color: #6b7280;
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 14px;
+}
+.auth-modal input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+}
+.auth-modal input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+.auth-modal button {
+    width: 100%;
+    padding: 12px 16px;
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+.auth-modal button:hover:not(:disabled) {
+    background-color: #2563eb;
+}
+.auth-modal button:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+.auth-modal .error-message {
+    color: #dc3545;
+    font-size: 13px;
+    margin-bottom: 16px;
+    text-align: center;
+    display: none;
+}
+.auth-modal .error-message.show {
+    display: block;
+}
+.content-hidden {
+    filter: blur(1px);
+    pointer-events: none;
+    opacity: 0.5;
+}
+</style>
+</head>
+<body>
+    <!-- ✅ MODAL DE AUTENTICACIÓN -->
+    <div id="authBackdrop" class="auth-backdrop" style="display: none;">
+        <div id="authModal" class="auth-modal" style="display: none;">
+            <h2>🔒 Acceso Restringido</h2>
+            <p>Ingrese sus credenciales para continuar</p>
+            <form id="authForm" onsubmit="handleAuthSubmit(event)">
+                <div class="error-message" id="authErrorMessage"></div>
+                <input 
+                    type="text" 
+                    id="authUsername" 
+                    placeholder="Usuario" 
+                    autocomplete="username"
+                    required
+                >
+                <input 
+                    type="password" 
+                    id="authPassword" 
+                    placeholder="Contraseña" 
+                    autocomplete="current-password"
+                    required
+                >
+                <button type="submit" id="authSubmitBtn">ACCEDER</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+    <div class="container mx-auto p-4">
+        <header class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Portal de Cierre de Obras</h1>
+                    <p class="text-lg text-gray-600 dark:text-gray-300">Proveedor: <span class="font-semibold" id="providerName"></span></p>
+                </div>
+                <div class="flex gap-2 mt-4 sm:mt-0">
+                    <button id="darkModeToggle" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg">🌙</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="mb-4 border-b border-gray-200">
+            <nav class="flex -mb-px space-x-6" aria-label="Tabs">
+                <button id="pendingTab" class="py-3 px-1 border-b-2 text-sm font-medium tab">Pendientes</button>
+                <button id="completedTab" class="py-3 px-1 border-b-2 text-sm font-medium tab">Realizados</button>
+                <button id="reportsTab" class="py-3 px-1 border-b-2 text-sm font-medium tab">Reportes</button>
+            </nav>
+        </div>
+
+        <!-- AVISO DE DIRECCIONES FUERA DE PLAN -->
+        <div class="mb-4 bg-yellow-50 dark:bg-yellow-900 border-l-4 border-yellow-400 dark:border-yellow-600 p-4 rounded">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-yellow-700 dark:text-yellow-100">
+                        <strong>⚠️ Direcciones no listadas:</strong> Si necesita informar sobre direcciones que <strong>no figuran en ADDRO</strong>, escriba a <a href="mailto:mgrivero@personal.com.ar,dgallaro@personal.com.ar" class="underline font-semibold hover:text-yellow-900">mgrivero@personal.com.ar / dgallaro@personal.com.ar</a> con los detalles de la dirección, NAP y CDO.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <main id="pendingView" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold dark:text-gray-100">Edificios Pendientes</h2>
+                    <div class="flex gap-2">
+                        <button id="exportPendingBtn" class="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Exportar Excel
+                        </button>
+                        <button id="viewModeToggle" data-mode="list" class="text-xs bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700">📋 Vista Tabla</button>
+                    </div>
+                </div>
+                <div class="relative mb-3">
+                    <input type="text" id="pendingSearchBox" placeholder="Buscar por calle o altura..." class="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg pl-10">
+                    <svg class="w-6 h-6 text-gray-400 absolute top-1/2 left-3 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <select id="centralFilter" class="p-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded"><option value="">Todas las Centrales</option></select>
+                    <select id="pdFilter" class="p-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded"><option value="">Todos los PD</option></select>
+                </div>
+                <div class="mb-3">
+                    <select id="sortSelect" class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded"><option value="direccion">Ordenar: Dirección</option><option value="activos">Ordenar: Activos</option><option value="central">Ordenar: Central</option><option value="pd">Ordenar: PD</option></select>
+                </div>
+                <div id="pendingBuildingList" class="flex-grow overflow-y-auto custom-scrollbar pr-2 h-96"></div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6"><h2 class="text-xl font-semibold mb-4 dark:text-gray-100">Información del Edificio</h2><div id="pendingBuildingInfoCard" class="bg-gray-100 dark:bg-gray-900 p-4 rounded-lg min-h-[200px] flex items-center justify-center border border-gray-200 dark:border-gray-700"><p class="text-gray-500 dark:text-gray-300 text-center">Seleccione un edificio de la lista.</p></div><div id="pendingActionButtonContainer" class="mt-6 text-center"></div></div>
+        </main>
+
+        <main id="completedView" class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden">
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold dark:text-gray-100">Edificios Realizados</h2>
+                    <button id="viewModeToggleCompleted" data-mode="list" class="text-xs bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700">📋 Vista Tabla</button>
+                </div>
+                <div class="relative mb-3">
+                    <input type="text" id="completedSearchBox" placeholder="Buscar por calle o altura..." class="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg pl-10">
+                    <svg class="w-6 h-6 text-gray-400 absolute top-1/2 left-3 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <div class="grid grid-cols-3 gap-2 mb-3">
+                    <select id="centralFilterCompleted" class="p-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded"><option value="">Todas las Centrales</option></select>
+                    <select id="pdFilterCompleted" class="p-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded"><option value="">Todos los PD</option></select>
+                    <select id="sortSelectCompleted" class="p-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded"><option value="direccion">Por Dirección</option><option value="fecha">Por Fecha</option><option value="central">Por Central</option><option value="pd">Por PD</option></select>
+                </div>
+                <div id="completedBuildingList" class="flex-grow overflow-y-auto custom-scrollbar pr-2 h-96"></div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6"><h2 class="text-xl font-semibold mb-4 dark:text-gray-100">Detalles del Cierre</h2><div id="completedBuildingInfoCard" class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg min-h-[200px] flex items-center justify-center"><p class="text-gray-500 dark:text-gray-400 text-center">Seleccione un cierre de la lista.</p></div></div>
+        </main>
+                <main id="reportsView" class="hidden">
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4 dark:text-gray-100">Reportes</h2>
+                <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                    Descargue el reporte de edificios construidos desde BDCierre filtrado por proveedor y PD.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div>
+                        <label for="reportPdSelect" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">PD</label>
+                        <select id="reportPdSelect" class="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg">
+                            <option value="">Seleccione PD...</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <button id="downloadReportBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow">
+                            Descargar Excel
+                        </button>
+                    </div>
+                </div>
+
+                <div id="reportResultMessage" class="mt-4 text-sm text-gray-600 dark:text-gray-300"></div>
+            </div>
+        </main>
+    </div>
+
+    <div id="reportModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden"><div id="reportModalBackdrop" class="absolute inset-0 bg-black bg-opacity-50 opacity-0 modal-backdrop"></div><div class="modal-panel bg-white rounded-lg shadow-2xl w-full max-w-lg mx-auto transform opacity-0 scale-95 flex flex-col max-h-[90vh]"><div class="flex justify-between items-center p-4 border-b flex-shrink-0"><div><h3 class="text-lg font-semibold">Informar Cierre</h3><p id="reportModalTitle" class="text-sm text-gray-600"></p></div><button id="closeReportModalBtn" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button></div><form id="reportForm" class="p-4 space-y-4 overflow-y-auto custom-scrollbar flex-grow"><div><label for="reportCloseReason" class="block text-sm font-medium text-gray-700">Causal (obligatorio)</label><select id="reportCloseReason" name="reportCloseReason" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"><option value="">Seleccione...</option><option>CONSTRUIDO</option><option>CANCELADO</option></select></div><div><label for="reportObservations" class="block text-sm font-medium text-gray-700">Observaciones (obligatorio)</label><textarea id="reportObservations" name="reportObservations" rows="3" required class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"></textarea></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Fotos (máx. 15)</label><div class="flex space-x-2"><label for="reportCameraInput" class="flex-1 text-center px-4 py-2 bg-gray-600 text-white rounded-md cursor-pointer hover:bg-gray-700 text-xs">CÁMARA</label><input type="file" id="reportCameraInput" accept="image/*" capture="environment" class="hidden"><label for="reportGalleryInput" class="flex-1 text-center px-4 py-2 bg-gray-600 text-white rounded-md cursor-pointer hover:bg-gray-700 text-xs">GALERÍA</label><input type="file" id="reportGalleryInput" accept="image/*" multiple class="hidden"></div></div><div id="reportPhotoPreview" class="grid grid-cols-3 sm:grid-cols-5 gap-2 bg-gray-100 p-2 rounded-md min-h-[80px]"></div></form><div class="px-4 py-3 bg-gray-50 text-right flex-shrink-0"><button type="submit" form="reportForm" id="submitReportBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">COMPLETAR CIERRE</button></div></div></div>
+    <div id="medicionModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden"><div id="medicionModalBackdrop" class="absolute inset-0 bg-black bg-opacity-50 opacity-0 modal-backdrop"></div><div class="modal-panel bg-white rounded-lg shadow-2xl w-full max-w-lg mx-auto transform opacity-0 scale-95 flex flex-col max-h-[90vh]"><div class="flex justify-between items-center p-4 border-b flex-shrink-0"><div><h3 class="text-lg font-semibold">Adjuntar Medición</h3><p id="medicionModalTitle" class="text-sm text-gray-600"></p></div><button id="closeMedicionModalBtn" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button></div><form id="medicionForm" class="p-4 space-y-4 overflow-y-auto custom-scrollbar flex-grow"><div><label class="block text-sm font-medium text-gray-700 mb-2">Fotos de Medición (máx. 30)</label><div class="flex space-x-2"><label for="medicionCameraInput" class="flex-1 text-center px-4 py-2 bg-purple-600 text-white rounded-md cursor-pointer hover:bg-purple-700 text-xs">📷 CÁMARA</label><input type="file" id="medicionCameraInput" accept="image/*" capture="environment" class="hidden"><label for="medicionGalleryInput" class="flex-1 text-center px-4 py-2 bg-purple-600 text-white rounded-md cursor-pointer hover:bg-purple-700 text-xs">🖼️ GALERÍA</label><input type="file" id="medicionGalleryInput" accept="image/*" multiple class="hidden"></div></div><div id="medicionPhotoPreview" class="grid grid-cols-3 sm:grid-cols-5 gap-2 bg-gray-100 p-2 rounded-md min-h-[80px]"></div><div class="text-sm text-gray-600 text-center"><span id="medicionPhotoCount">0</span> / 30 fotos</div></form><div class="px-4 py-3 bg-gray-50 text-right flex-shrink-0"><button type="submit" form="medicionForm" id="submitMedicionBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md">ADJUNTAR MEDICIÓN</button></div></div></div>
+    
+    <script>const GOOGLE_APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx004763u8F8bfKL5GxLFkE9UEs74hh9b5V6pOO_NHD-533LMY8FMtW-ItcdrLx-JSCxw/exec";</script>
+    <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCv5xb28BLGtHcidfKxcnD0xMBlYk_R3vQ",
+  authDomain: "cierreedificios.firebaseapp.com",
+  projectId: "cierreedificios",
+  storageBucket: "cierreedificios.firebasestorage.app",
+  messagingSenderId: "553433458726",
+  appId: "1:553433458726:web:4732b53b5fb2e869c31ee7",
+  measurementId: "G-HG2WNBDH0V"
+};
+</script>
+    <script>const edificiosData = [
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "MURGUIONDO 1677",
+        "NAP": "RDOLA01",
+        "CDO": "-",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "27",
+        "N° FO ASIGNADO": "2",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "MURGUIONDO 1678",
+        "Q CDOS": "4",
+        "Q FO": "1",
+        "ID CALLE": "46",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLA",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "DE LA TORRE LISANDRO ,AV. 1854",
+        "NAP": "RDOLA03",
+        "CDO": "RDOLA03B2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "10",
+        "N° FO ASIGNADO": "5",
+        "RAMA": "B",
+        "SALIDA": "2",
+        "DIRECCION NAP": "PILAR 1814",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "35",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLA",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "CAFAYATE 1915",
+        "NAP": "RDOLA04",
+        "CDO": "RDOLA04A3",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "8",
+        "N° FO ASIGNADO": "7",
+        "RAMA": "A",
+        "SALIDA": "1",
+        "DIRECCION NAP": "PILAR 1978",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "176",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLA",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "ALBERDI JUAN B ,AV. 6172",
+        "NAP": "RDOLA05",
+        "CDO": "RDOLA05C3",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "6",
+        "N° FO ASIGNADO": "2",
+        "RAMA": "C",
+        "SALIDA": "3",
+        "DIRECCION NAP": "OLIDEN 1511",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "55",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLA",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "OLIDEN 1545",
+        "NAP": "RDOLA05",
+        "CDO": "-",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "30",
+        "N° FO ASIGNADO": "2",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "OLIDEN 1511",
+        "Q CDOS": "4",
+        "Q FO": "1",
+        "ID CALLE": "47",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLA",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "OLIDEN 1637",
+        "NAP": "RDOLA06",
+        "CDO": "RDOLA06C2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "10",
+        "N° FO ASIGNADO": "4",
+        "RAMA": "C",
+        "SALIDA": "3",
+        "DIRECCION NAP": "OLIDEN 1675",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "47",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLA",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "MURGUIONDO 1710",
+        "NAP": "RDOLA07",
+        "CDO": "RDOLA07B2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "12",
+        "N° FO ASIGNADO": "5",
+        "RAMA": "B",
+        "SALIDA": "2",
+        "DIRECCION NAP": "TAPALQUE 6090",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "46",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLA",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "MURGUIONDO 1746",
+        "NAP": "RDOLA07",
+        "CDO": "RDOLA07C1",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "11",
+        "N° FO ASIGNADO": "6",
+        "RAMA": "C",
+        "SALIDA": "3",
+        "DIRECCION NAP": "TAPALQUE 6090",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "46",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLA",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "MURGUIONDO 1760",
+        "NAP": "RDOLA07",
+        "CDO": "RDOLA07D1",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "12",
+        "N° FO ASIGNADO": "6",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "TAPALQUE 6090",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "46",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLA",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "TAPALQUE 6067",
+        "NAP": "RDOLA07",
+        "CDO": "RDOLA07E1",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "10",
+        "N° FO ASIGNADO": "7",
+        "RAMA": "E",
+        "SALIDA": "5",
+        "DIRECCION NAP": "TAPALQUE 6090",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "56",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLA",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "LARRAYA 2232",
+        "NAP": "RDOLB01",
+        "CDO": "-",
+        "TIPO EDIFICIO": "41 A 80 UF",
+        "TIPO INST": "PRECO",
+        "UF DEDICADO": "75",
+        "N° FO ASIGNADO": "3",
+        "RAMA": "PRECO 9",
+        "SALIDA": "9",
+        "DIRECCION NAP": "LARRAYA 2280",
+        "Q CDOS": "10",
+        "Q FO": "1",
+        "ID CALLE": "37",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLB",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "POLA 2048",
+        "NAP": "RDOLB02",
+        "CDO": "RDOLB02B1",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "12",
+        "N° FO ASIGNADO": "4",
+        "RAMA": "B",
+        "SALIDA": "2",
+        "DIRECCION NAP": "POLA 2133",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "136",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLB",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "LARRAZABAL ,AV. 2570",
+        "NAP": "RDOLB07",
+        "CDO": "-",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "36",
+        "N° FO ASIGNADO": "7",
+        "RAMA": "F",
+        "SALIDA": "6",
+        "DIRECCION NAP": "LARRAZABAL, AV. 2585",
+        "Q CDOS": "4",
+        "Q FO": "1",
+        "ID CALLE": "137",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLB",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "LARRAZABAL ,AV. 2742",
+        "NAP": "RDOLB07",
+        "CDO": "-",
+        "TIPO EDIFICIO": "41 A 80 UF",
+        "TIPO INST": "PRECO",
+        "UF DEDICADO": "44",
+        "N° FO ASIGNADO": "8",
+        "RAMA": "PRECO 9",
+        "SALIDA": "9",
+        "DIRECCION NAP": "LARRAZABAL, AV. 2585",
+        "Q CDOS": "6",
+        "Q FO": "1",
+        "ID CALLE": "137",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLB",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "LARRAZABAL ,AV. 2476",
+        "NAP": "RDOLB07",
+        "CDO": "-",
+        "TIPO EDIFICIO": "41 A 80 UF",
+        "TIPO INST": "PRECO",
+        "UF DEDICADO": "72",
+        "N° FO ASIGNADO": "9",
+        "RAMA": "PRECO 10",
+        "SALIDA": "10",
+        "DIRECCION NAP": "LARRAZABAL, AV. 2585",
+        "Q CDOS": "9",
+        "Q FO": "1",
+        "ID CALLE": "137",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLB",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "PERON EVA ,AV. 5753",
+        "NAP": "RDOLB08",
+        "CDO": "RDOLB08D3",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "8",
+        "N° FO ASIGNADO": "11",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "LARRAYA 2598",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "98",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLB",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "PERON EVA ,AV. 5651",
+        "NAP": "RDOLB09",
+        "CDO": "RDOLB09E3",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "8",
+        "N° FO ASIGNADO": "14",
+        "RAMA": "E",
+        "SALIDA": "5",
+        "DIRECCION NAP": "FONROUGE 2630",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "98",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLB",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "ZUVIRIA 5535",
+        "NAP": "RDOLC04",
+        "CDO": "RDOLC04A2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "9",
+        "N° FO ASIGNADO": "4",
+        "RAMA": "A",
+        "SALIDA": "1",
+        "DIRECCION NAP": "OLIDEN 3168",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "152",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLC",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "LEGUIZAMON MARTINIANO 2941",
+        "NAP": "RDOLC05",
+        "CDO": "RDOLC05B3",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "6",
+        "N° FO ASIGNADO": "1",
+        "RAMA": "B",
+        "SALIDA": "2",
+        "DIRECCION NAP": "DE LA ROSA DR J 6291",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "175",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLC",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "HUBAC 6375",
+        "NAP": "RDOLC6",
+        "CDO": "RDOLC6A2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "6",
+        "N° FO ASIGNADO": "4",
+        "RAMA": "A",
+        "SALIDA": "1",
+        "DIRECCION NAP": "HUBAC 6317",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "188",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLC",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "HUBAC 6352",
+        "NAP": "RDOLC6",
+        "CDO": "RDOLC6B1",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "6",
+        "N° FO ASIGNADO": "4",
+        "RAMA": "B",
+        "SALIDA": "2",
+        "DIRECCION NAP": "HUBAC 6317",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "188",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLC",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "HUBAC 6338",
+        "NAP": "RDOLC6",
+        "CDO": "RDOLC6C1",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "10",
+        "N° FO ASIGNADO": "5",
+        "RAMA": "C",
+        "SALIDA": "3",
+        "DIRECCION NAP": "HUBAC 6317",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "188",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLC",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "HUBAC 6334",
+        "NAP": "RDOLC6",
+        "CDO": "RDOLC6D2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "8",
+        "N° FO ASIGNADO": "5",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "HUBAC 6317",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "188",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLC",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "MALAGA 5590",
+        "NAP": "RDOLD01",
+        "CDO": "-",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "6",
+        "N° FO ASIGNADO": "3",
+        "RAMA": "F",
+        "SALIDA": "6",
+        "DIRECCION NAP": "MALAGA 5507",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "348",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLD",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "OLIDEN 3551",
+        "NAP": "RDOLD03",
+        "CDO": "RDOLD03A1",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "24",
+        "N° FO ASIGNADO": "7",
+        "RAMA": "A",
+        "SALIDA": "1",
+        "DIRECCION NAP": "SARAZA 5541",
+        "Q CDOS": "3",
+        "Q FO": "1",
+        "ID CALLE": "47",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLD",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "SARAZA 5661",
+        "NAP": "RDOLD04",
+        "CDO": "-",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "21",
+        "N° FO ASIGNADO": "10",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "SARAZA 5699",
+        "Q CDOS": "3",
+        "Q FO": "1",
+        "ID CALLE": "329",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLD",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "SANTANDER 5669",
+        "NAP": "RDOLD05",
+        "CDO": "RDOLD05D2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "12",
+        "N° FO ASIGNADO": "2",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "OLIDEN 3348",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "150",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLD",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "MURGUIONDO 3591",
+        "NAP": "RDOLD06",
+        "CDO": "RDOLD06B3",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "6",
+        "N° FO ASIGNADO": "4",
+        "RAMA": "B",
+        "SALIDA": "2",
+        "DIRECCION NAP": "MURGUIONDO 3905",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "46",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLD",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "L",
+        "DIRECCION EDIFICIO": "LEGUIZAMON MARTINIANO 3575",
+        "NAP": "RDOLD07",
+        "CDO": "RDOLD07D2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "10",
+        "N° FO ASIGNADO": "7",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "BALBASTRO 5839",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "175",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOLD",
+        "PD_CONCAT": "RDO L"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "BRUIX ,AV. 3674",
+        "NAP": "RDOOA03",
+        "CDO": "RDOOA03C1",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "12",
+        "N° FO ASIGNADO": "6",
+        "RAMA": "C",
+        "SALIDA": "3",
+        "DIRECCION NAP": "BRUIX AV.3646",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "108",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOA",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "MORETO 1451",
+        "NAP": "RDOOA04",
+        "CDO": "RDOOA04D3",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "8",
+        "N° FO ASIGNADO": "2",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "MORETO 1384",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "102",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOA",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "MORETO 1562",
+        "NAP": "RDOOA05",
+        "CDO": "RDOOA05A2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "9",
+        "N° FO ASIGNADO": "4",
+        "RAMA": "A",
+        "SALIDA": "1",
+        "DIRECCION NAP": "Dr GUILLERMO CORREA 4661",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "102",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOA",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "MOZART 1532",
+        "NAP": "RDOOA05",
+        "CDO": "RDOOA05D1",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "8",
+        "N° FO ASIGNADO": "5",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "Dr GUILLERMO CORREA 4661",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "470",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOA",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "CORREA DR GUILLERMO 4671",
+        "NAP": "RDOOA06",
+        "CDO": "RDOOA06C2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "12",
+        "N° FO ASIGNADO": "8",
+        "RAMA": "C",
+        "SALIDA": "3",
+        "DIRECCION NAP": "CARBALLO 1588",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "472",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOA",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "MONTE ,PJE. 4650",
+        "NAP": "RDOOA06",
+        "CDO": "RDOOA06D2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "14",
+        "N° FO ASIGNADO": "8",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "CARBALLO 1588",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "105",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOA",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "MONTE ,PJE. 4610",
+        "NAP": "RDOOA06",
+        "CDO": "RDOOA06E1",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "9",
+        "N° FO ASIGNADO": "9",
+        "RAMA": "E",
+        "SALIDA": "5",
+        "DIRECCION NAP": "CARBALLO 1588",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "105",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOA",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "MONTE ,PJE. 4602",
+        "NAP": "RDOOA06",
+        "CDO": "RDOOA06F1",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "12",
+        "N° FO ASIGNADO": "9",
+        "RAMA": "F",
+        "SALIDA": "6",
+        "DIRECCION NAP": "CARBALLO 1588",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "105",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOA",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "PROFETA DE LA PAMPA 4571",
+        "NAP": "RDOOA07",
+        "CDO": "RDOOA07A2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "10",
+        "N° FO ASIGNADO": "10",
+        "RAMA": "A",
+        "SALIDA": "1",
+        "DIRECCION NAP": "CARBALLO 1674",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "471",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOA",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "PROFETA DE LA PAMPA 4593",
+        "NAP": "RDOOA07",
+        "CDO": "RDOOA07C1",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "8",
+        "N° FO ASIGNADO": "11",
+        "RAMA": "C",
+        "SALIDA": "3",
+        "DIRECCION NAP": "CARBALLO 1674",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "471",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOA",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "CARBALLO PADRE M 1674",
+        "NAP": "RDOOA07",
+        "CDO": "-",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "40",
+        "N° FO ASIGNADO": "12",
+        "RAMA": "F",
+        "SALIDA": "6",
+        "DIRECCION NAP": "CARBALLO 1674",
+        "Q CDOS": "4",
+        "Q FO": "1",
+        "ID CALLE": "523",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOA",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "MORETO 1772",
+        "NAP": "RDOOA08",
+        "CDO": "-",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "18",
+        "N° FO ASIGNADO": "14",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "MORETO 1721",
+        "Q CDOS": "3",
+        "Q FO": "1",
+        "ID CALLE": "102",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOA",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "AMEGHINO FLORENTINO 1764",
+        "NAP": "RDOOB01",
+        "CDO": "RDOOB01A3",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "8",
+        "N° FO ASIGNADO": "1",
+        "RAMA": "A",
+        "SALIDA": "1",
+        "DIRECCION NAP": "FLORENTINO AMEGUINO 1738",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "196",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOB",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "ALVAREZ DE ACEVEDO T DE 1805",
+        "NAP": "RDOOB02",
+        "CDO": "RDOOB02A1",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "24",
+        "N° FO ASIGNADO": "3",
+        "RAMA": "A",
+        "SALIDA": "1",
+        "DIRECCION NAP": "ALVAREZ DE ACEVEDO 1831",
+        "Q CDOS": "3",
+        "Q FO": "1",
+        "ID CALLE": "511",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOB",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "DERQUI ,AV. 4053",
+        "NAP": "RDOOB03",
+        "CDO": "RDOOB03A2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "16",
+        "N° FO ASIGNADO": "5",
+        "RAMA": "A",
+        "SALIDA": "1",
+        "DIRECCION NAP": "ECHEANDIA 4194",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "559",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOB",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "ECHEANDIA 4099",
+        "NAP": "RDOOB08",
+        "CDO": "RDOOB08B2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "6",
+        "N° FO ASIGNADO": "1",
+        "RAMA": "B",
+        "SALIDA": "2",
+        "DIRECCION NAP": "LA FACULTAD 1828",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "146",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOB",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "ESCALADA GRAL MANUEL 1842",
+        "NAP": "RDOOC01",
+        "CDO": "RDOOC01A2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "12",
+        "N° FO ASIGNADO": "1",
+        "RAMA": "A",
+        "SALIDA": "1",
+        "DIRECCION NAP": "LAFERRERE GREGORIO DE 4840",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "53",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOC",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "GUARDIA NACIONAL 2035",
+        "NAP": "RDOOC03",
+        "CDO": "RDOOC03C2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "9",
+        "N° FO ASIGNADO": "7",
+        "RAMA": "C",
+        "SALIDA": "3",
+        "DIRECCION NAP": "LAFERRERE GREGORIO DE 5080",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "82",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOC",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "ARAUJO 2063",
+        "NAP": "RDOOC04",
+        "CDO": "RDOOC04A2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "12",
+        "N° FO ASIGNADO": "8",
+        "RAMA": "A",
+        "SALIDA": "1",
+        "DIRECCION NAP": "ARAUJO 2087",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "113",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOC",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "ARAUJO 2176",
+        "NAP": "RDOOC04",
+        "CDO": "-",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "10",
+        "N° FO ASIGNADO": "10",
+        "RAMA": "F",
+        "SALIDA": "6",
+        "DIRECCION NAP": "ARAUJO 2087",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "113",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOC",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "MONTE ,PJE. 5200",
+        "NAP": "RDOOC05",
+        "CDO": "-",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "14",
+        "N° FO ASIGNADO": "13",
+        "RAMA": "F",
+        "SALIDA": "6",
+        "DIRECCION NAP": "PJE MONTE 5168",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "105",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOC",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "WHITE 1969",
+        "NAP": "RDOOC06",
+        "CDO": "RDOOC06C1",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "8",
+        "N° FO ASIGNADO": "2",
+        "RAMA": "C",
+        "SALIDA": "3",
+        "DIRECCION NAP": "EVA PERON 4665",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "92",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOC",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "PERON EVA ,AV. 4719",
+        "NAP": "RDOOC06",
+        "CDO": "RDOOC06D1",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "8",
+        "N° FO ASIGNADO": "2",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "EVA PERON 4665",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "98",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOC",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "ESCALADA GRAL MANUEL 2140",
+        "NAP": "RDOOC09",
+        "CDO": "RDOOC09A3",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "8",
+        "N° FO ASIGNADO": "8",
+        "RAMA": "A",
+        "SALIDA": "1",
+        "DIRECCION NAP": "OLIVERA AV 1571",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "53",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOC",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "OLIVERA ,AV. 1557",
+        "NAP": "RDOOC09",
+        "CDO": "RDOOC09D1",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "8",
+        "N° FO ASIGNADO": "9",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "OLIVERA AV 1571",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "110",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOC",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "OLIVERA ,AV. 1561",
+        "NAP": "RDOOC09",
+        "CDO": "-",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "30",
+        "N° FO ASIGNADO": "10",
+        "RAMA": "F",
+        "SALIDA": "6",
+        "DIRECCION NAP": "OLIVERA AV 1571",
+        "Q CDOS": "4",
+        "Q FO": "1",
+        "ID CALLE": "110",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOC",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "PERON EVA ,AV. 5025",
+        "NAP": "RDOOC10",
+        "CDO": "RDOOC10E2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "8",
+        "N° FO ASIGNADO": "13",
+        "RAMA": "E",
+        "SALIDA": "5",
+        "DIRECCION NAP": "CHAMICAL 5085",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "98",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOC",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "GUARDIA NACIONAL 2234",
+        "NAP": "RDOOC10",
+        "CDO": "-",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "5",
+        "N° FO ASIGNADO": "13",
+        "RAMA": "F",
+        "SALIDA": "6",
+        "DIRECCION NAP": "CHAMICAL 5085",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "82",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOC",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "DUMAS ALEJANDRO 1991",
+        "NAP": "RDOOC12",
+        "CDO": "RDOOC12A2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "16",
+        "N° FO ASIGNADO": "1",
+        "RAMA": "A",
+        "SALIDA": "1",
+        "DIRECCION NAP": "ALEJANDRO DUMAS 1885",
+        "Q CDOS": "2",
+        "Q FO": "1",
+        "ID CALLE": "560",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOC",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "PERON EVA ,AV. 5180",
+        "NAP": "RDOOD02",
+        "CDO": "-",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "32",
+        "N° FO ASIGNADO": "4",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "EVA PERON AV. 5270",
+        "Q CDOS": "4",
+        "Q FO": "1",
+        "ID CALLE": "98",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOD",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "PERON EVA ,AV. 5308",
+        "NAP": "RDOOD03",
+        "CDO": "-",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "32",
+        "N° FO ASIGNADO": "6",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "EVA PERON AV. 5308",
+        "Q CDOS": "4",
+        "Q FO": "1",
+        "ID CALLE": "98",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOD",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "ZUVIRIA 4602",
+        "NAP": "RDOOD06",
+        "CDO": "RDOOD06E1",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "21",
+        "N° FO ASIGNADO": "5",
+        "RAMA": "E",
+        "SALIDA": "5",
+        "DIRECCION NAP": "GUARDIA NACIONAL 2510",
+        "Q CDOS": "3",
+        "Q FO": "1",
+        "ID CALLE": "152",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOD",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "ECHEANDIA 4841",
+        "NAP": "RDOOD07",
+        "CDO": "RDOOD07D1",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "18",
+        "N° FO ASIGNADO": "7",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "ECHEANDIA 4841",
+        "Q CDOS": "3",
+        "Q FO": "1",
+        "ID CALLE": "146",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOD",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "ZUVIRIA 5096",
+        "NAP": "RDOOD08",
+        "CDO": "RDOOD08D3",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "6",
+        "N° FO ASIGNADO": "10",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "ZUVIRIA 4828",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "152",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOD",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "CORVALAN 2650",
+        "NAP": "RDOOD09",
+        "CDO": "RDOOD09C2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "8",
+        "N° FO ASIGNADO": "12",
+        "RAMA": "C",
+        "SALIDA": "3",
+        "DIRECCION NAP": "ECHEANDIA 5061",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "76",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOD",
+        "PD_CONCAT": "RDO O"
+    },
+    {
+        "REGION": "AMBA",
+        "CENTRAL": "RDO",
+        "PD": "O",
+        "DIRECCION EDIFICIO": "CORVALAN 2679",
+        "NAP": "RDOOD09",
+        "CDO": "RDOOD09D2",
+        "TIPO EDIFICIO": "< 41 UF",
+        "TIPO INST": "RAMA EDIF",
+        "UF DEDICADO": "7",
+        "N° FO ASIGNADO": "12",
+        "RAMA": "D",
+        "SALIDA": "4",
+        "DIRECCION NAP": "ECHEANDIA 5061",
+        "Q CDOS": "1",
+        "Q FO": "1",
+        "ID CALLE": "76",
+        "PROVEEDOR": "STAR SERVICE",
+        "Unnamed: 17": "",
+        "Unnamed: 18": "",
+        "Unnamed: 19": "",
+        "Unnamed: 20": "",
+        "Unnamed: 21": "",
+        "Unnamed: 22": "",
+        "CANTIDAD_ACTIVOS": 0,
+        "PC": "RDOOD",
+        "PD_CONCAT": "RDO O"
+    }
+];</script>
+    <script>
+// ✅ SHA256 HASH FUNCTION (LIGHTWEIGHT)
+function sha256(str) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(str);
+    return crypto.subtle.digest('SHA-256', data).then(hashBuffer => {
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => ('0' + b.toString(16)).slice(-2)).join('');
+    });
+}
+
+// ✅ AUTENTICACIÓN GLOBAL
+const AUTH_CONFIG = {
+    username: "ovlteco2026",
+    passwordHash: "e1f8f52d714fb71efb3c37597d07d1f2ffb5fd8db33b98f8411e0f2d276a40b7"
+};
+
+function checkAuthStatus() {
+    const authStatus = sessionStorage.getItem('app_authenticated');
+    return authStatus === 'true';
+}
+
+async function handleAuthSubmit(event) {
+    event.preventDefault();
+    const username = document.getElementById('authUsername').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const errorMsg = document.getElementById('authErrorMessage');
+    const submitBtn = document.getElementById('authSubmitBtn');
+    
+    if (!username || !password) {
+        errorMsg.textContent = 'El usuario y contraseña son obligatorios.';
+        errorMsg.classList.add('show');
+        return;
+    }
+    
+    if (username !== AUTH_CONFIG.username) {
+        errorMsg.textContent = 'Usuario o contraseña incorrectos.';
+        errorMsg.classList.add('show');
+        return;
+    }
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<div class="loader mx-auto" style="width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>';
+    
+    try {
+        const inputHash = await sha256(password);
+        if (inputHash === AUTH_CONFIG.passwordHash) {
+            sessionStorage.setItem('app_authenticated', 'true');
+            document.getElementById('authBackdrop').style.display = 'none';
+            document.getElementById('authModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+            location.reload();
+        } else {
+            errorMsg.textContent = 'Usuario o contraseña incorrectos.';
+            errorMsg.classList.add('show');
+        }
+    } catch (err) {
+        errorMsg.textContent = 'Error en la validación. Intenta de nuevo.';
+        errorMsg.classList.add('show');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'ACCEDER';
+    }
+}
+
+function showAuthModal() {
+    document.body.style.overflow = 'hidden';
+    document.getElementById('authBackdrop').style.display = 'flex';
+    document.getElementById('authModal').style.display = 'block';
+    document.getElementById('authUsername').focus();
+}
+
+// ✅ NUEVA FUNCIÓN AUXILIAR PARA CONVERTIR ARCHIVOS A BASE64
+function convertFilesToBase64(files) {
+    const promises = files.map(file => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+    });
+    return Promise.all(promises);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // ✅ CHECK DE AUTENTICACIÓN AL CARGAR
+    if (!checkAuthStatus()) {
+        showAuthModal();
+        return;
+    }
+
+    // --- ESTADO GLOBAL DE LA APP ---
+    let appState = {
+        db: null,
+        closuresCollection: null,
+        medicionesCollection: null,
+        providerName: "No definido",
+        collectionName: "default_collection",
+        pendingData: [...(typeof edificiosData !== 'undefined' ? edificiosData : [])],
+        completedData: [],
+        medicionesData: {},
+        selectedPendingBuilding: null,
+        selectedCompletedBuilding: null,
+        modalFunctions: {}
+    };
+
+    // --- INICIALIZACIÓN ---
+    function initializeApp() {
+        if (typeof edificiosData === 'undefined') {
+            console.error("No se encontraron datos de edificios.");
+            document.body.innerHTML = '<p class="text-red-500 text-center p-8">Error: No se pudieron cargar los datos de los edificios.</p>';
+            return;
+        }
+
+        appState.modalFunctions = setupAllModals();
+        setupUIListeners();
+
+        try {
+            const app = firebase.initializeApp(firebaseConfig);
+            appState.db = firebase.firestore();
+            appState.providerName = edificiosData.length > 0 ? edificiosData[0].PROVEEDOR : "No definido";
+            appState.collectionName = appState.providerName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+            appState.closuresCollection = appState.db.collection(appState.collectionName);
+            appState.medicionesCollection = appState.db.collection(`${appState.collectionName}_mediciones`);
+            console.log("Firebase inicializado.");
+            setupFirestoreListener();
+            setupMedicionesListener();
+        } catch (e) {
+            console.error("Error inicializando Firebase:", e);
+            showToast("Error crítico al conectar con Firebase.", "error");
+            return;
+        }
+        
+        document.getElementById('providerName').textContent = appState.providerName;
+        populateFilters();
+        switchView('pending');
+        renderPendingList();
+        updateStats();
+    }
+
+    // --- LÓGICA DE FIREBASE ---
+    function setupFirestoreListener() {
+        appState.closuresCollection.orderBy("timestamp", "desc").onSnapshot(snapshot => {
+            console.log("Datos recibidos de Firebase.");
+            appState.completedData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            appState.pendingData = edificiosData.filter(p => !appState.completedData.some(c => c.id === p['DIRECCION EDIFICIO']));
+            
+            renderPendingList();
+            renderCompletedList();
+            updateStats();
+
+            if (appState.selectedPendingBuilding && !appState.pendingData.some(p => p['DIRECCION EDIFICIO'] === appState.selectedPendingBuilding['DIRECCION EDIFICIO'])) {
+                appState.selectedPendingBuilding = null;
+                document.getElementById('pendingBuildingInfoCard').innerHTML = '<p class="text-gray-500 text-center">Seleccione un edificio de la lista para ver sus detalles.</p>';
+                document.getElementById('pendingActionButtonContainer').innerHTML = '';
+            }
+            if (appState.selectedCompletedBuilding && !appState.completedData.some(c => c.id === appState.selectedCompletedBuilding.id)) {
+                appState.selectedCompletedBuilding = null;
+                document.getElementById('completedBuildingInfoCard').innerHTML = '<p class="text-gray-500 text-center">Seleccione un cierre de la lista para ver sus detalles.</p>';
+            }
+        }, error => {
+            console.error("Error al obtener datos de Firebase: ", error);
+            showToast("Error de conexión con la base de datos.", "error");
+        });
+    }
+
+    function setupMedicionesListener() {
+        appState.medicionesCollection.onSnapshot(snapshot => {
+            console.log("Datos de mediciones recibidos.");
+            appState.medicionesData = {};
+            snapshot.docs.forEach(doc => {
+                appState.medicionesData[doc.id] = doc.data();
+            });
+            renderCompletedList();
+        }, error => {
+            console.error("Error al obtener mediciones: ", error);
+        });
+    }
+
+    // --- LÓGICA DE SUBMIT Y REVERSIÓN ---
+    async function handleReportSubmit(event) {
+        event.preventDefault();
+        const form = document.getElementById('reportForm');
+        const submitButton = document.getElementById('submitReportBtn');
+        const editingId = form.dataset.editingId;
+
+        if (!submitButton) return;
+
+        const buildingData = editingId ? appState.completedData.find(c => c.id === editingId) : appState.selectedPendingBuilding;
+
+        if (!buildingData || !buildingData['DIRECCION EDIFICIO']) {
+            showToast("Error: No hay un edificio válido seleccionado.", "error");
+            return;
+        }
+
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<div class="loader mx-auto"></div>';
+
+        const buildingDataForSheet = Object.fromEntries(
+            Object.entries(buildingData).map(([key, value]) => [key.replace(/[^a-zA-Z0-9]/g, '_'), value])
+        );
+        
+        // ✅ CONVERTIR FOTOS A BASE64 ANTES DE ENVIAR
+        const photosBase64 = await convertFilesToBase64(appState.modalFunctions.getReportFiles());
+
+        const dataToSend = {
+            ...buildingDataForSheet,
+            causal: document.getElementById('reportCloseReason').value,
+            observaciones: document.getElementById('reportObservations').value,
+            reportedBy: 'Sistema Web',
+            isOffPlan: buildingData.isOffPlan || false,
+            driveFolderUrl: buildingData.driveFolderUrl || '',
+            action: editingId ? 'update' : 'create',
+            newPhotosBase64: photosBase64 // ✅ AÑADIR FOTOS AL ENVÍO
+        };
+
+        try {
+            const response = await fetch(GOOGLE_APP_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(dataToSend)
+            });
+            const result = await response.json();
+
+            if (result.status !== 'success') {
+                throw new Error(result.message || 'Error desconocido en Google Apps Script.');
+            }
+            
+            const buildingId = buildingData.id || buildingData['DIRECCION EDIFICIO'];
+            const closureData = {
+                ...buildingData,
+                causal: dataToSend.causal,
+                observaciones: dataToSend.observaciones,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                reportedBy: dataToSend.reportedBy,
+                driveFolderUrl: result.folderUrl || dataToSend.driveFolderUrl
+            };
+
+            if (editingId) {
+                await appState.closuresCollection.doc(editingId).update(closureData);
+                showToast("¡Cierre actualizado con éxito!");
+            } else {
+                await appState.closuresCollection.doc(buildingId).set(closureData);
+                showToast("¡Cierre informado con éxito!");
+            }
+            
+            appState.modalFunctions.closeModal(document.getElementById('reportModal'), document.getElementById('reportModalBackdrop'));
+
+        } catch (error) {
+            console.error("Error en el proceso de cierre: ", error);
+            showToast("Error al procesar el cierre: " + error.message, "error");
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = editingId ? 'GUARDAR CAMBIOS' : 'COMPLETAR CIERRE';
+            delete form.dataset.editingId;
+        }
+    }
+
+    async function handleMedicionSubmit(event) {
+        event.preventDefault();
+        const form = document.getElementById('medicionForm');
+        const submitButton = document.getElementById('submitMedicionBtn');
+        const isEditing = form.dataset.isEditing === 'true';
+        const cierreId = form.dataset.cierreId;
+        
+        const cierre = appState.completedData.find(c => c.id === cierreId);
+        if (!cierre) {
+            showToast("Error: No se encontró el cierre.", "error");
+            return;
+        }
+
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<div class="loader mx-auto"></div>';
+
+        const photosBase64 = await convertFilesToBase64(appState.modalFunctions.getMedicionFiles());
+        
+        if (photosBase64.length === 0) {
+            showToast("Debe adjuntar al menos una foto.", "error");
+            submitButton.disabled = false;
+            submitButton.textContent = isEditing ? 'GUARDAR CAMBIOS' : 'ADJUNTAR MEDICIÓN';
+            return;
+        }
+
+        const dataToSend = {
+            DIRECCION_EDIFICIO: cierre['DIRECCION EDIFICIO'],
+            NAP: cierre['NAP'] || cierre.NAP,
+            PC: cierre['PC'] || cierre.PC,
+            CDO: cierre['CDO'] || cierre.CDO,
+            PROVEEDOR: cierre['PROVEEDOR'] || cierre.PROVEEDOR,
+            medicionPhotosBase64: photosBase64,
+            action: 'medicion',
+            isEditingMedicion: isEditing
+        };
+
+        try {
+            const response = await fetch(GOOGLE_APP_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(dataToSend)
+            });
+            const result = await response.json();
+
+            if (result.status !== 'success') {
+                throw new Error(result.message || 'Error desconocido en Google Apps Script.');
+            }
+
+            // Guardar en colección separada de mediciones
+            const medicionData = {
+                edificioId: cierreId,
+                direccion: cierre['DIRECCION EDIFICIO'],
+                proveedor: appState.providerName,
+                driveFolderUrl: result.folderUrl,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                estado: 'completada'
+            };
+
+            const medicionesCollection = appState.db.collection(`${appState.collectionName}_mediciones`);
+            
+            if (isEditing) {
+                await medicionesCollection.doc(cierreId).update(medicionData);
+            } else {
+                await medicionesCollection.doc(cierreId).set(medicionData);
+            }
+
+            showToast(isEditing ? "¡Medición actualizada con éxito!" : "¡Medición adjuntada con éxito!");
+            appState.modalFunctions.closeModal(document.getElementById('medicionModal'), document.getElementById('medicionModalBackdrop'));
+
+        } catch (error) {
+            console.error("Error al procesar medición: ", error);
+            showToast("Error al procesar la medición: " + error.message, "error");
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = isEditing ? 'GUARDAR CAMBIOS' : 'ADJUNTAR MEDICIÓN';
+        }
+    }
+
+    async function deleteOrRevertClosure(cierre, isDelete) {
+        const password = prompt("Ingrese la contraseña para continuar:");
+        if (password !== "0658") {
+            if (password !== null) showToast("Contraseña incorrecta.", "error");
+            return;
+        }
+
+        const actionText = isDelete ? "eliminar" : "revertir";
+        if (!confirm(`¿Está seguro que desea ${actionText} el cierre de "${cierre['DIRECCION EDIFICIO']}"?`)) {
+            return;
+        }
+
+        try {
+            const dataToSend = {
+                ...cierre,
+                action: 'delete',
+                DIRECCION_EDIFICIO: cierre['DIRECCION EDIFICIO']
+            };
+
+            const response = await fetch(GOOGLE_APP_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(dataToSend)
+            });
+            const result = await response.json();
+
+            if (result.status !== 'success') {
+                throw new Error(result.message || 'Error en Google Apps Script al eliminar.');
+            }
+
+            await appState.closuresCollection.doc(cierre.id).delete();
+            showToast(`El cierre ha sido ${actionText}do correctamente.`);
+
+        } catch (error) {
+            console.error(`Error al ${actionText} el cierre: `, error);
+            showToast(`Error al ${actionText} el cierre. Intente de nuevo.`, "error");
+        }
+    }
+
+    // --- RENDERIZADO Y UI ---
+    function renderPendingList() {
+        const searchQuery = document.getElementById('pendingSearchBox').value.toLowerCase();
+        const centralFilter = document.getElementById('centralFilter')?.value || '';
+        const pdFilter = document.getElementById('pdFilter')?.value || '';
+        const sortBy = document.getElementById('sortSelect')?.value || 'direccion';
+        const viewMode = document.getElementById('viewModeToggle')?.dataset.mode || 'list';
+        
+        let filtered = appState.pendingData.filter(p => {
+            const direccion = (p['DIRECCION EDIFICIO'] || '').toLowerCase();
+            const matchSearch = direccion.includes(searchQuery);
+            const matchCentral = !centralFilter || p['CENTRAL'] === centralFilter;
+            const matchPd = !pdFilter || p['PD'] === pdFilter;
+            return matchSearch && matchCentral && matchPd;
+        });
+        
+        filtered.sort((a, b) => {
+            if (sortBy === 'activos') return (parseInt(b['CANTIDAD_ACTIVOS']) || 0) - (parseInt(a['CANTIDAD_ACTIVOS']) || 0);
+            if (sortBy === 'central') return (a['CENTRAL'] || '').localeCompare(b['CENTRAL'] || '');
+            if (sortBy === 'pd') return (a['PD'] || '').localeCompare(b['PD'] || '');
+            return (a['DIRECCION EDIFICIO'] || '').localeCompare(b['DIRECCION EDIFICIO'] || '');
+        });
+        
+        if (viewMode === 'table') {
+            renderTableView(document.getElementById('pendingBuildingList'), filtered, 'pending');
+        } else {
+            renderListView(document.getElementById('pendingBuildingList'), filtered, appState.selectedPendingBuilding, handlePendingBuildingClick, true);
+        }
+    }
+    
+    function renderCompletedList() {
+        const searchQuery = document.getElementById('completedSearchBox').value.toLowerCase();
+        const centralFilter = document.getElementById('centralFilterCompleted')?.value || '';
+        const pdFilter = document.getElementById('pdFilterCompleted')?.value || '';
+        const sortBy = document.getElementById('sortSelectCompleted')?.value || 'direccion';
+        const viewMode = document.getElementById('viewModeToggleCompleted')?.dataset.mode || 'list';
+        
+        let filtered = appState.completedData.filter(c => {
+            const direccion = (c['DIRECCION EDIFICIO'] || '').toLowerCase();
+            const matchSearch = direccion.includes(searchQuery);
+            const matchCentral = !centralFilter || c['CENTRAL'] === centralFilter;
+            const matchPd = !pdFilter || c['PD'] === pdFilter;
+            return matchSearch && matchCentral && matchPd;
+        });
+        
+        filtered.sort((a, b) => {
+            if (sortBy === 'fecha') return (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0);
+            if (sortBy === 'central') return (a['CENTRAL'] || '').localeCompare(b['CENTRAL'] || '');
+            if (sortBy === 'pd') return (a['PD'] || '').localeCompare(b['PD'] || '');
+            return (a['DIRECCION EDIFICIO'] || '').localeCompare(b['DIRECCION EDIFICIO'] || '');
+        });
+        
+        if (viewMode === 'table') {
+            renderTableView(document.getElementById('completedBuildingList'), filtered, 'completed');
+        } else {
+            renderListView(document.getElementById('completedBuildingList'), filtered, appState.selectedCompletedBuilding, handleCompletedBuildingClick, false);
+        }
+    }
+
+    function renderListView(listElement, data, selectedItem, clickHandler, isPending) {
+        if (data.length === 0) {
+            listElement.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center p-4">No se encontraron edificios.</p>';
+            return;
+        }
+
+        listElement.innerHTML = data.map(edificio => {
+            const isSelected = selectedItem && (selectedItem.id || selectedItem['DIRECCION EDIFICIO']) === (edificio.id || edificio['DIRECCION EDIFICIO']);
+            const centralPd = edificio['CENTRAL'] && edificio['PD'] ? `${edificio['CENTRAL']}-${edificio['PD']}` : '';
+            const activos = isPending && edificio['CANTIDAD_ACTIVOS'] !== undefined ? ` • Activos: ${edificio['CANTIDAD_ACTIVOS']}` : '';
+            const causal = !isPending && edificio.causal ? ` • ${edificio.causal}` : '';
+            const address = edificio['DIRECCION EDIFICIO'];
+            const badgeColor = isPending ? 'bg-blue-600' : 'bg-green-600';
+            
+            return `<div class="item ${isSelected ? 'item-selected' : 'item-default'} p-3 mb-2 rounded-lg cursor-pointer transition-colors duration-200" data-address="${address}">
+                <div class="font-semibold">${address}</div>
+                <div class="text-xs mt-1 opacity-75"><span class="badge ${badgeColor} text-white">${centralPd}</span>${activos}${causal}</div>
+            </div>`;
+        }).join('');
+
+        listElement.querySelectorAll('.item').forEach(item => {
+            item.addEventListener('click', () => {
+                const address = item.dataset.address;
+                const edificio = data.find(e => e['DIRECCION EDIFICIO'] === address || e.id === address);
+                if (edificio) clickHandler(edificio);
+            });
+        });
+    }
+
+    function renderPendingInfoCard(edificio) {
+        const card = document.getElementById('pendingBuildingInfoCard');
+        card.innerHTML = `
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <dt class="font-semibold text-gray-700 dark:text-gray-300 col-span-full">Dirección:</dt>
+                <dd class="text-gray-900 dark:text-gray-100 col-span-full mb-2">${edificio['DIRECCION EDIFICIO'] || 'N/A'}</dd>
+                <dt class="font-semibold text-gray-700 dark:text-gray-300">PD:</dt> <dd class="text-gray-900 dark:text-gray-100">${edificio['PD_CONCAT'] || 'N/A'}</dd>
+                <dt class="font-semibold text-gray-700 dark:text-gray-300">PC:</dt> <dd class="text-gray-900 dark:text-gray-100">${edificio['PC'] || 'N/A'}</dd>
+                <dt class="font-semibold text-gray-700 dark:text-gray-300">NAP:</dt> <dd class="text-gray-900 dark:text-gray-100">${edificio['NAP'] || 'N/A'}</dd>
+                <dt class="font-semibold text-gray-700 dark:text-gray-300">CDO:</dt> <dd class="text-gray-900 dark:text-gray-100">${edificio['CDO'] || 'N/A'}</dd>
+                <dt class="font-semibold text-gray-700 dark:text-gray-300">Tipo Edificio:</dt> <dd class="text-gray-900 dark:text-gray-100">${edificio['TIPO EDIFICIO'] || 'N/A'}</dd>
+                <dt class="font-semibold text-gray-700 dark:text-gray-300">Tipo Inst:</dt> <dd class="text-gray-900 dark:text-gray-100">${edificio['TIPO INST'] || 'N/A'}</dd>
+                <dt class="font-semibold text-gray-700 dark:text-gray-300">UF Dedicado:</dt> <dd class="text-gray-900 dark:text-gray-100">${edificio['UF DEDICADO'] || 'N/A'}</dd>
+                <dt class="font-semibold text-gray-700 dark:text-gray-300">N° FO Asignado:</dt> <dd class="text-gray-900 dark:text-gray-100 font-mono">${edificio['N° FO ASIGNADO'] || 'N/A'}</dd>
+                <dt class="font-semibold text-gray-700 dark:text-gray-300">Rama:</dt> <dd class="text-gray-900 dark:text-gray-100">${edificio['RAMA'] || 'N/A'}</dd>
+                <dt class="font-semibold text-gray-700 dark:text-gray-300">Salida:</dt> <dd class="text-gray-900 dark:text-gray-100">${edificio['SALIDA'] || 'N/A'}</dd>
+                <dt class="font-semibold text-gray-700 dark:text-gray-300">Dirección NAP:</dt> <dd class="text-gray-900 dark:text-gray-100">${edificio['DIRECCION NAP'] || 'N/A'}</dd>
+                <dt class="font-semibold text-gray-700 dark:text-gray-300">Q CDO:</dt> <dd class="text-gray-900 dark:text-gray-100">${edificio['Q CDOS'] || 'N/A'}</dd>
+                <dt class="font-semibold text-gray-700 dark:text-gray-300">Q FO:</dt> <dd class="text-gray-900 dark:text-gray-100">${edificio['Q FO'] || 'N/A'}</dd>
+                <dt class="font-semibold text-green-700 dark:text-green-400 col-span-full mt-2">Cantidad Activos:</dt>
+                <dd class="text-green-700 dark:text-green-400 font-bold text-lg col-span-full">${edificio['CANTIDAD_ACTIVOS'] || '0'}</dd>
+            </dl>
+        `;
+        renderPendingActionButton();
+    }
+
+    function renderCompletedInfoCard(cierre) {
+        const card = document.getElementById('completedBuildingInfoCard');
+        const revertButtonHtml = `<button class="revert-closure-btn flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md">REVERTIR A PENDIENTE</button>`;
+        
+        const medicion = appState.medicionesData[cierre.id];
+        const medicionFolderHtml = medicion 
+            ? `<div><dt class="font-semibold text-gray-700 dark:text-gray-300">Carpeta de Medición:</dt><dd><a href="${medicion.driveFolderUrl}" target="_blank" class="text-purple-600 dark:text-purple-400 hover:underline">📐 Abrir Medición en Drive</a></dd></div>` 
+            : '';
+
+        card.innerHTML = `
+            <div>
+                <h4 class="font-bold text-lg mb-2 text-gray-900 dark:text-gray-100">${cierre['DIRECCION EDIFICIO']}</h4>
+                <dl class="space-y-3 text-sm">
+                    <div><dt class="font-semibold text-gray-700 dark:text-gray-300">Causal:</dt><dd class="text-gray-900 dark:text-gray-100 font-medium p-2 bg-blue-100 dark:bg-blue-900 rounded-md mt-1">${cierre.causal}</dd></div>
+                    <div><dt class="font-semibold text-gray-700 dark:text-gray-300">Observaciones:</dt><dd class="text-gray-900 dark:text-gray-100 p-2 bg-gray-200 dark:bg-gray-800 rounded-md mt-1 whitespace-pre-wrap">${cierre.observaciones}</dd></div>
+                    <div>
+                        <dt class="font-semibold text-gray-700 dark:text-gray-300">Carpeta de Archivos:</dt>
+                        <dd><a href="${cierre.driveFolderUrl}" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline">Abrir Carpeta en Drive</a></dd>
+                    </div>
+                    ${medicionFolderHtml}
+                </dl>
+                <div class="mt-6 grid grid-cols-2 gap-2">
+                    <button class="edit-closure-btn bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-3 rounded-md text-sm">EDITAR</button>
+                    ${medicion 
+                        ? `<button class="edit-medicion-btn bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-3 rounded-md text-sm">EDITAR MEDICIÓN</button>` 
+                        : `<button class="add-medicion-btn bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 rounded-md text-sm">ADJUNTAR MEDICIÓN</button>`}
+                </div>
+                <div class="mt-2">
+                    ${revertButtonHtml}
+                </div>
+            </div>
+        `;
+        card.querySelector('.edit-closure-btn').addEventListener('click', () => appState.modalFunctions.openEditModal(cierre));
+        
+        const addMedicionBtn = card.querySelector('.add-medicion-btn');
+        const editMedicionBtn = card.querySelector('.edit-medicion-btn');
+        if(addMedicionBtn) addMedicionBtn.addEventListener('click', () => appState.modalFunctions.openMedicionModal(cierre, false));
+        if(editMedicionBtn) editMedicionBtn.addEventListener('click', () => appState.modalFunctions.openMedicionModal(cierre, true));
+        
+        const revertBtn = card.querySelector('.revert-closure-btn');
+        if(revertBtn) revertBtn.addEventListener('click', () => deleteOrRevertClosure(cierre, false));
+    }
+
+    function renderPendingActionButton() {
+        document.getElementById('pendingActionButtonContainer').innerHTML = `
+            <button id="reportConstructionBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg">INFORMAR CONSTRUCCIÓN</button>
+        `;
+        document.getElementById('reportConstructionBtn').addEventListener('click', () => {
+            if (appState.selectedPendingBuilding) {
+                appState.modalFunctions.openReportModal(appState.selectedPendingBuilding);
+            } else {
+                showToast("Por favor, seleccione un edificio pendiente primero.", "error");
+            }
+        });
+    }
+
+    function handlePendingBuildingClick(edificio) {
+        appState.selectedPendingBuilding = edificio;
+        renderPendingList();
+        renderPendingInfoCard(edificio);
+    }
+    
+    function handleCompletedBuildingClick(cierre) {
+        appState.selectedCompletedBuilding = cierre;
+        renderCompletedList();
+        renderCompletedInfoCard(cierre);
+    }
+
+    function switchView(view) {
+       
+     const pendingView = document.getElementById('pendingView');
+     const completedView = document.getElementById('completedView');
+     const reportsView = document.getElementById('reportsView');
+
+     const pendingTab = document.getElementById('pendingTab');
+     const completedTab = document.getElementById('completedTab');
+     const reportsTab = document.getElementById('reportsTab');
+
+     pendingView.classList.add('hidden');
+     completedView.classList.add('hidden');
+     reportsView.classList.add('hidden');
+
+     pendingTab.classList.remove('tab-active');
+     completedTab.classList.remove('tab-active');
+     reportsTab.classList.remove('tab-active');
+
+     pendingTab.classList.add('tab-inactive');
+     completedTab.classList.add('tab-inactive');
+     reportsTab.classList.add('tab-inactive');
+
+    if (view === 'pending') {
+        pendingView.classList.remove('hidden');
+        pendingTab.classList.add('tab-active');
+        pendingTab.classList.remove('tab-inactive');
+    }
+
+    if (view === 'completed') {
+        completedView.classList.remove('hidden');
+        completedTab.classList.add('tab-active');
+        completedTab.classList.remove('tab-inactive');
+    }
+
+    if (view === 'reports') {
+        reportsView.classList.remove('hidden');
+        reportsTab.classList.add('tab-active');
+        reportsTab.classList.remove('tab-inactive');
+        populateReportPdSelect();
+    }
+}
+    
+    function populateFilters() {
+        const centrals = [...new Set(edificiosData.map(e => e['CENTRAL']).filter(Boolean))].sort();
+        const pds = [...new Set(edificiosData.map(e => e['PD']).filter(Boolean))].sort();
+        
+        const centralFilter = document.getElementById('centralFilter');
+        const pdFilter = document.getElementById('pdFilter');
+        const centralFilterCompleted = document.getElementById('centralFilterCompleted');
+        const pdFilterCompleted = document.getElementById('pdFilterCompleted');
+        
+        centrals.forEach(c => {
+            if (centralFilter) centralFilter.innerHTML += `<option value="${c}">${c}</option>`;
+            if (centralFilterCompleted) centralFilterCompleted.innerHTML += `<option value="${c}">${c}</option>`;
+        });
+        
+        pds.forEach(p => {
+            if (pdFilter) pdFilter.innerHTML += `<option value="${p}">${p}</option>`;
+            if (pdFilterCompleted) pdFilterCompleted.innerHTML += `<option value="${p}">${p}</option>`;
+        });
+    }
+    function populateReportPdSelect() {
+    const reportPdSelect = document.getElementById('reportPdSelect');
+    if (!reportPdSelect) return;
+
+    const currentValue = reportPdSelect.value;
+
+    const pds = [...new Set(
+        edificiosData
+            .map(e => {
+                const central = (e['CENTRAL'] || '').trim();
+                const pd = (e['PD'] || '').trim();
+                if (!central || !pd) return '';
+                return central + '-' + pd;
+            })
+            .filter(Boolean)
+    )].sort();
+
+    reportPdSelect.innerHTML = '<option value="">Seleccione PD...</option>';
+
+    pds.forEach(pd => {
+        reportPdSelect.innerHTML += `<option value="${pd}">${pd}</option>`;
+    });
+
+    if (currentValue) {
+        reportPdSelect.value = currentValue;
+    }
+}
+    function renderTableView(container, data, type) {
+        const isPending = type === 'pending';
+        container.innerHTML = `<div class="overflow-x-auto"><table class="w-full text-xs"><thead class="bg-gray-200 dark:bg-gray-700"><tr><th class="p-2 text-left dark:text-white">Dirección</th><th class="p-2 text-left dark:text-white">Central-PD</th><th class="p-2 text-left dark:text-white">NAP</th>${isPending ? '<th class="p-2 text-right dark:text-white">Activos</th>' : '<th class="p-2 text-left dark:text-white">Causal</th>'}</tr></thead><tbody>` +
+        data.map(item => {
+            const centralPd = `${item['CENTRAL'] || ''}-${item['PD'] || ''}`;
+            const clickAttr = isPending ? `data-address="${item['DIRECCION EDIFICIO']}"` : `data-id="${item.id}"`;
+            return `<tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" ${clickAttr}><td class="p-2 dark:text-gray-200">${item['DIRECCION EDIFICIO']}</td><td class="p-2"><span class="badge ${isPending ? 'bg-blue-600' : 'bg-green-600'} text-white">${centralPd}</span></td><td class="p-2 dark:text-gray-200">${item['NAP'] || 'N/A'}</td><td class="p-2 dark:text-gray-200 ${isPending ? 'text-right font-bold' : ''}">${isPending ? (item['CANTIDAD_ACTIVOS'] || 0) : (item.causal || '')}</td></tr>`;
+        }).join('') + '</tbody></table></div>';
+        
+        container.querySelectorAll('tr[data-address], tr[data-id]').forEach(row => {
+            row.addEventListener('click', () => {
+                if (isPending) {
+                    const address = row.dataset.address;
+                    const edificio = appState.pendingData.find(p => p['DIRECCION EDIFICIO'] === address);
+                    if (edificio) handlePendingBuildingClick(edificio);
+                } else {
+                    const id = row.dataset.id;
+                    const cierre = appState.completedData.find(c => c.id === id);
+                    if (cierre) handleCompletedBuildingClick(cierre);
+                }
+            });
+        });
+    }
+    
+    function updateStats() {
+        const totalPending = appState.pendingData.length;
+        const totalCompleted = appState.completedData.length;
+        const total = totalPending + totalCompleted;
+        const progress = total > 0 ? (totalCompleted / total * 100).toFixed(1) : 0;
+        
+        document.getElementById('statPending').textContent = totalPending;
+        document.getElementById('statCompleted').textContent = totalCompleted;
+        document.getElementById('statTotal').textContent = total;
+        document.getElementById('statProgress').textContent = `${progress}%`;
+        document.getElementById('progressBar').style.width = `${progress}%`;
+    }
+
+    function setupUIListeners() {
+        document.getElementById('pendingTab').addEventListener('click', () => switchView('pending'));
+        document.getElementById('completedTab').addEventListener('click', () => switchView('completed'));
+        document.getElementById('reportsTab').addEventListener('click', () => switchView('reports'));
+        document.getElementById('pendingSearchBox').addEventListener('input', () => renderPendingList());
+        document.getElementById('completedSearchBox').addEventListener('input', () => renderCompletedList());
+        document.getElementById('reportForm').addEventListener('submit', handleReportSubmit);
+        document.getElementById('medicionForm').addEventListener('submit', handleMedicionSubmit);
+        
+        ['centralFilter', 'pdFilter', 'sortSelect'].forEach(id => {
+            const elem = document.getElementById(id);
+            if (elem) elem.addEventListener('change', () => renderPendingList());
+        });
+        ['centralFilterCompleted', 'pdFilterCompleted', 'sortSelectCompleted'].forEach(id => {
+            const elem = document.getElementById(id);
+            if (elem) elem.addEventListener('change', () => renderCompletedList());
+        });
+        
+        const viewToggle = document.getElementById('viewModeToggle');
+        if (viewToggle) {
+            viewToggle.addEventListener('click', () => {
+                viewToggle.dataset.mode = viewToggle.dataset.mode === 'list' ? 'table' : 'list';
+                viewToggle.textContent = viewToggle.dataset.mode === 'list' ? '📋 Vista Tabla' : '📝 Vista Lista';
+                renderPendingList();
+            });
+        }
+        
+        // Botón de exportación a Excel
+        const exportPendingBtn = document.getElementById('exportPendingBtn');
+        if (exportPendingBtn) {
+            exportPendingBtn.addEventListener('click', () => {
+                const pendingData = appState.pendingData || [];
+                
+                if (pendingData.length === 0) {
+                    showToast('No hay edificios pendientes para exportar', 'error');
+                    return;
+                }
+                
+                // Preparar datos para Excel con toda la información
+                const excelData = pendingData.map(item => {
+                    return {
+                        'DIRECCIÓN': item['DIRECCION EDIFICIO'] || item['DIRECCION_EDIFICIO'] || '',
+                        'CENTRAL': item['CENTRAL'] || '',
+                        'PD': item['PD'] || '',
+                        'NAP': item['NAP'] || '',
+                        'CDO': item['CDO'] || '',
+                        'ACTIVOS TOTALES': item['CANTIDAD_ACTIVOS'] || item['ACTIVOS'] || 0,
+                        'OBSERVACIONES': item['OBSERVACIONES'] || ''
+                    };
+                });
+                
+                // Crear workbook y worksheet
+                const ws = XLSX.utils.json_to_sheet(excelData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Edificios Pendientes');
+                
+                // Ajustar anchos de columnas
+                const colWidths = [
+                    { wch: 40 }, // DIRECCIÓN
+                    { wch: 15 }, // CENTRAL
+                    { wch: 10 }, // PD
+                    { wch: 15 }, // NAP
+                    { wch: 15 }, // CDO
+                    { wch: 15 }, // ACTIVOS
+                    { wch: 50 }  // OBSERVACIONES
+                ];
+                ws['!cols'] = colWidths;
+                
+                // Generar nombre de archivo con fecha y proveedor
+                const today = new Date().toISOString().split('T')[0];
+                const providerName = appState.providerName.replace(/\s+/g, '_');
+                const filename = 'Pendientes_' + providerName + '_' + today + '.xlsx';
+                
+                // Descargar archivo
+                XLSX.writeFile(wb, filename);
+                showToast('Excel exportado: ' + pendingData.length + ' edificios', 'success');
+            });
+        }
+                // Botón de descarga de reporte desde BDCierre
+        const downloadReportBtn = document.getElementById('downloadReportBtn');
+        if (downloadReportBtn) {
+            downloadReportBtn.addEventListener('click', async () => {
+                const reportPdSelect = document.getElementById('reportPdSelect');
+                const reportResultMessage = document.getElementById('reportResultMessage');
+
+                const selectedPd = reportPdSelect ? reportPdSelect.value : '';
+
+                if (!selectedPd) {
+                    showToast('Seleccione una PD para descargar el reporte', 'error');
+                    return;
+                }
+
+                downloadReportBtn.disabled = true;
+                downloadReportBtn.textContent = 'Descargando...';
+
+                if (reportResultMessage) {
+                    reportResultMessage.textContent = 'Consultando BDCierre...';
+                }
+
+                try {
+                    const response = await fetch(GOOGLE_APP_SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({
+                            action: 'reporte',
+                            proveedor: appState.providerName,
+                            pd: selectedPd
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.status !== 'success') {
+                        throw new Error(result.message || 'Error desconocido al generar reporte.');
+                    }
+
+                    const reportData = result.data || [];
+
+                    if (reportData.length === 0) {
+                        showToast('No se encontraron registros para esa PD', 'error');
+                        if (reportResultMessage) {
+                            reportResultMessage.textContent = 'No se encontraron registros para ' + selectedPd + '.';
+                        }
+                        return;
+                    }
+
+                    const ws = XLSX.utils.json_to_sheet(reportData);
+                    const wb = XLSX.utils.book_new();
+
+                    XLSX.utils.book_append_sheet(wb, ws, 'Reporte');
+
+                    ws['!cols'] = Object.keys(reportData[0]).map(() => ({ wch: 22 }));
+
+                    const today = new Date().toISOString().split('T')[0];
+                    const providerName = appState.providerName.replace(/\s+/g, '_');
+                    const safePd = selectedPd.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+                    const filename = 'Reporte_' + providerName + '_' + safePd + '_' + today + '.xlsx';
+
+                    XLSX.writeFile(wb, filename);
+
+                    showToast('Reporte exportado: ' + reportData.length + ' registros', 'success');
+
+                    if (reportResultMessage) {
+                        reportResultMessage.textContent = 'Reporte generado correctamente: ' + reportData.length + ' registros.';
+                    }
+
+                } catch (error) {
+                    console.error('Error descargando reporte:', error);
+                    showToast('Error al descargar reporte: ' + error.message, 'error');
+
+                    if (reportResultMessage) {
+                        reportResultMessage.textContent = 'Error: ' + error.message;
+                    }
+
+                } finally {
+                    downloadReportBtn.disabled = false;
+                    downloadReportBtn.textContent = 'Descargar Excel';
+                }
+            });
+        }
+        
+        const viewToggleCompleted = document.getElementById('viewModeToggleCompleted');
+        if (viewToggleCompleted) {
+            viewToggleCompleted.addEventListener('click', () => {
+                viewToggleCompleted.dataset.mode = viewToggleCompleted.dataset.mode === 'list' ? 'table' : 'list';
+                viewToggleCompleted.textContent = viewToggleCompleted.dataset.mode === 'list' ? '📋 Vista Tabla' : '📝 Vista Lista';
+                renderCompletedList();
+            });
+        }
+        
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        if (darkModeToggle) {
+            darkModeToggle.addEventListener('click', () => {
+                document.body.classList.toggle('dark-mode');
+                localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+                darkModeToggle.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+            });
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+                darkModeToggle.textContent = '☀️';
+            }
+        }
+    }
+
+    function showToast(message, type = 'success') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = 'toast';
+        toast.classList.add(type === 'success' ? 'toast-success' : 'toast-error');
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+
+    initializeApp();
+});
+
+function setupAllModals() {
+    const reportModal = document.getElementById('reportModal');
+    const reportModalBackdrop = document.getElementById('reportModalBackdrop');
+    const reportModalTitle = document.getElementById('reportModalTitle');
+    const closeReportModalButton = document.getElementById('closeReportModalBtn');
+    const reportForm = document.getElementById('reportForm');
+    const submitReportBtn = document.getElementById('submitReportBtn');
+    const reportPhotoPreview = document.getElementById('reportPhotoPreview');
+    const reportCameraInput = document.getElementById('reportCameraInput');
+    const reportGalleryInput = document.getElementById('reportGalleryInput');
+    
+    let reportUploadedFiles = [];
+
+    function openModal(modal, backdrop) {
+        if (!modal || !backdrop) return;
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            backdrop.classList.remove('opacity-0');
+            modal.querySelector('.modal-panel').classList.remove('opacity-0', 'scale-95');
+        }, 10);
+    }
+
+    function closeModal(modal, backdrop) {
+        if (!modal || !backdrop) return;
+        backdrop.classList.add('opacity-0');
+        modal.querySelector('.modal-panel').classList.add('opacity-0', 'scale-95');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+    }
+
+    function handleFiles(files, fileList, previewElement) {
+        const newFiles = [...files].slice(0, 15 - fileList.length);
+        fileList.push(...newFiles);
+        if (fileList.length > 15) fileList.splice(0, fileList.length - 15); // Corregido para que no supere 15
+        renderPhotoPreview(previewElement, fileList);
+    }
+
+    function renderPhotoPreview(previewElement, fileList) {
+        if (!previewElement) return;
+        previewElement.innerHTML = '';
+        if (fileList.length === 0) {
+            previewElement.innerHTML = '<p class="text-sm text-gray-500 col-span-full text-center">No hay fotos cargadas.</p>';
+            return;
+        }
+        fileList.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const previewContainer = document.createElement('div');
+                previewContainer.className = 'relative w-20 h-20';
+                previewContainer.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover rounded-md"><button data-index="${index}" class="remove-photo-btn absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">&times;</button>`;
+                previewElement.appendChild(previewContainer);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    if (closeReportModalButton) closeReportModalButton.addEventListener('click', () => closeModal(reportModal, reportModalBackdrop));
+    if (reportModalBackdrop) reportModalBackdrop.addEventListener('click', () => closeModal(reportModal, reportModalBackdrop));
+    if (reportCameraInput) reportCameraInput.addEventListener('change', (e) => handleFiles(e.target.files, reportUploadedFiles, reportPhotoPreview));
+    if (reportGalleryInput) reportGalleryInput.addEventListener('change', (e) => handleFiles(e.target.files, reportUploadedFiles, reportPhotoPreview));
+    if (reportPhotoPreview) reportPhotoPreview.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-photo-btn')) {
+            reportUploadedFiles.splice(parseInt(e.target.dataset.index, 10), 1);
+            renderPhotoPreview(reportPhotoPreview, reportUploadedFiles);
+        }
+    });
+
+    const medicionModal = document.getElementById('medicionModal');
+    const medicionModalBackdrop = document.getElementById('medicionModalBackdrop');
+    const medicionModalTitle = document.getElementById('medicionModalTitle');
+    const closeMedicionModalButton = document.getElementById('closeMedicionModalBtn');
+    const medicionForm = document.getElementById('medicionForm');
+    const submitMedicionBtn = document.getElementById('submitMedicionBtn');
+    const medicionPhotoPreview = document.getElementById('medicionPhotoPreview');
+    const medicionCameraInput = document.getElementById('medicionCameraInput');
+    const medicionGalleryInput = document.getElementById('medicionGalleryInput');
+    const medicionPhotoCount = document.getElementById('medicionPhotoCount');
+    let medicionUploadedFiles = [];
+
+    function updateMedicionCount() {
+        if (medicionPhotoCount) medicionPhotoCount.textContent = medicionUploadedFiles.length;
+    }
+
+    function handleMedicionFiles(files) {
+        const newFiles = [...files].slice(0, 30 - medicionUploadedFiles.length);
+        medicionUploadedFiles.push(...newFiles);
+        if (medicionUploadedFiles.length > 30) medicionUploadedFiles.splice(0, medicionUploadedFiles.length - 30);
+        renderPhotoPreview(medicionPhotoPreview, medicionUploadedFiles);
+        updateMedicionCount();
+    }
+
+    if (closeMedicionModalButton) closeMedicionModalButton.addEventListener('click', () => closeModal(medicionModal, medicionModalBackdrop));
+    if (medicionModalBackdrop) medicionModalBackdrop.addEventListener('click', () => closeModal(medicionModal, medicionModalBackdrop));
+    if (medicionCameraInput) medicionCameraInput.addEventListener('change', (e) => handleMedicionFiles(e.target.files));
+    if (medicionGalleryInput) medicionGalleryInput.addEventListener('change', (e) => handleMedicionFiles(e.target.files));
+    if (medicionPhotoPreview) medicionPhotoPreview.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-photo-btn')) {
+            medicionUploadedFiles.splice(parseInt(e.target.dataset.index, 10), 1);
+            renderPhotoPreview(medicionPhotoPreview, medicionUploadedFiles);
+            updateMedicionCount();
+        }
+    });
+
+    return {
+        openReportModal: (building) => {
+            if (!reportModal || !reportModalTitle) return;
+            reportModalTitle.textContent = building['DIRECCION EDIFICIO'];
+            reportForm.reset();
+            delete reportForm.dataset.editingId;
+            submitReportBtn.textContent = 'COMPLETAR CIERRE';
+            reportUploadedFiles = [];
+            renderPhotoPreview(reportPhotoPreview, reportUploadedFiles);
+            openModal(reportModal, reportModalBackdrop);
+        },
+        openEditModal: (cierre) => {
+            reportForm.reset();
+            reportForm.dataset.editingId = cierre.id;
+            reportModalTitle.textContent = `Editando: ${cierre['DIRECCION EDIFICIO']}`;
+            reportForm.elements.reportCloseReason.value = cierre.causal;
+            reportForm.elements.reportObservations.value = cierre.observaciones;
+            submitReportBtn.textContent = 'GUARDAR CAMBIOS';
+            reportUploadedFiles = [];
+            renderPhotoPreview(reportPhotoPreview, reportUploadedFiles);
+            openModal(reportModal, reportModalBackdrop);
+        },
+        closeModal,
+        getReportFiles: () => reportUploadedFiles,
+        openMedicionModal: (cierre, isEditing) => {
+            if (!medicionModal || !cierre) return;
+            medicionModalTitle.textContent = cierre['DIRECCION EDIFICIO'];
+            medicionForm.reset();
+            medicionForm.dataset.cierreId = cierre.id;
+            medicionForm.dataset.isEditing = isEditing ? 'true' : 'false';
+            submitMedicionBtn.textContent = isEditing ? 'GUARDAR CAMBIOS' : 'ADJUNTAR MEDICIÓN';
+            medicionUploadedFiles = [];
+            renderPhotoPreview(medicionPhotoPreview, medicionUploadedFiles);
+            updateMedicionCount();
+            openModal(medicionModal, medicionModalBackdrop);
+        },
+        getMedicionFiles: () => medicionUploadedFiles
+    };
+}
+</script>
+</body>
+</html>
